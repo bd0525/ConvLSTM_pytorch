@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 
+# Ref paper: Convolutional LSTM Network: A Machine Learning Approach for Precipitation Nowcasting
 
 class ConvLSTMCell(nn.Module):
 
@@ -24,11 +25,12 @@ class ConvLSTMCell(nn.Module):
 
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
-
         self.kernel_size = kernel_size
-        self.padding = kernel_size[0] // 2, kernel_size[1] // 2
+        self.padding = kernel_size[0] // 2, kernel_size[1] // 2 # maintain spatial dimensions
         self.bias = bias
 
+        # Convolutional layer that takes concatenated input and hidden state
+        # and outputs 4 * hidden_dim channels for the gates (input, forget, output, cell)
         self.conv = nn.Conv2d(in_channels=self.input_dim + self.hidden_dim,
                               out_channels=4 * self.hidden_dim,
                               kernel_size=self.kernel_size,
@@ -36,24 +38,37 @@ class ConvLSTMCell(nn.Module):
                               bias=self.bias)
 
     def forward(self, input_tensor, cur_state):
-        h_cur, c_cur = cur_state
+        h_cur, c_cur = cur_state # current hidden and cell states
 
-        combined = torch.cat([input_tensor, h_cur], dim=1)  # concatenate along channel axis
+        # Concatenate input and current hidden state along channel dimension
+        combined = torch.cat([input_tensor, h_cur], dim=1)
 
+        # Apply convolution to the combined tensor
         combined_conv = self.conv(combined)
+
+        # Split the convolution output into four parts for the gates
         cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.hidden_dim, dim=1)
+
+        # Apply sigmoid to get input, forget, and output gates
         i = torch.sigmoid(cc_i)
         f = torch.sigmoid(cc_f)
         o = torch.sigmoid(cc_o)
+
+        # Apply tanh to get candidate cell state
         g = torch.tanh(cc_g)
 
+        # Compute next cell state: forget old information and add new information
         c_next = f * c_cur + i * g
+
+        # Compute next hidden state: output gate applied to tanh of cell state
         h_next = o * torch.tanh(c_next)
 
         return h_next, c_next
 
     def init_hidden(self, batch_size, image_size):
         height, width = image_size
+
+        # Initialize hidden and cell states with zeros
         return (torch.zeros(batch_size, self.hidden_dim, height, width, device=self.conv.weight.device),
                 torch.zeros(batch_size, self.hidden_dim, height, width, device=self.conv.weight.device))
 
@@ -90,6 +105,7 @@ class ConvLSTM(nn.Module):
                  batch_first=False, bias=True, return_all_layers=False):
         super(ConvLSTM, self).__init__()
 
+        # Ensure kernel size is a list of tuples for each layer
         self._check_kernel_size_consistency(kernel_size)
 
         # Make sure that both `kernel_size` and `hidden_dim` are lists having len == num_layers
@@ -108,6 +124,8 @@ class ConvLSTM(nn.Module):
 
         cell_list = []
         for i in range(0, self.num_layers):
+            # Input dimension for each layer: input_dim for first layer,
+            # hidden_dim from layer (i-1) for subsequent layers
             cur_input_dim = self.input_dim if i == 0 else self.hidden_dim[i - 1]
 
             cell_list.append(ConvLSTMCell(input_dim=cur_input_dim,
@@ -122,10 +140,8 @@ class ConvLSTM(nn.Module):
 
         Parameters
         ----------
-        input_tensor: todo
-            5-D Tensor either of shape (t, b, c, h, w) or (b, t, c, h, w)
-        hidden_state: todo
-            None. todo implement stateful
+        input_tensor: 5-D Tensor either of shape (t, b, c, h, w) or (b, t, c, h, w)
+        hidden_state: Optional initial hidden state
 
         Returns
         -------
@@ -135,7 +151,7 @@ class ConvLSTM(nn.Module):
             # (t, b, c, h, w) -> (b, t, c, h, w)
             input_tensor = input_tensor.permute(1, 0, 2, 3, 4)
 
-        b, _, _, h, w = input_tensor.size()
+        b, t, c, h, w = input_tensor.size()
 
         # Implement stateful ConvLSTM
         if hidden_state is not None:
@@ -152,14 +168,14 @@ class ConvLSTM(nn.Module):
         cur_layer_input = input_tensor
 
         for layer_idx in range(self.num_layers):
-
             h, c = hidden_state[layer_idx]
             output_inner = []
-            for t in range(seq_len):
-                h, c = self.cell_list[layer_idx](input_tensor=cur_layer_input[:, t, :, :, :],
+            for t_idx in range(seq_len):
+                h, c = self.cell_list[layer_idx](input_tensor=cur_layer_input[:, t_idx, :, :, :],
                                                  cur_state=[h, c])
                 output_inner.append(h)
 
+            # Stack outputs for all time steps
             layer_output = torch.stack(output_inner, dim=1)
             cur_layer_input = layer_output
 
@@ -182,7 +198,7 @@ class ConvLSTM(nn.Module):
     def _check_kernel_size_consistency(kernel_size):
         if not (isinstance(kernel_size, tuple) or
                 (isinstance(kernel_size, list) and all([isinstance(elem, tuple) for elem in kernel_size]))):
-            raise ValueError('`kernel_size` must be tuple or list of tuples')
+            raise ValueError('`kernel_size` must be tuple or list of tuples!')
 
     @staticmethod
     def _extend_for_multilayer(param, num_layers):
