@@ -3,6 +3,8 @@ import torch
 
 # Ref paper: Convolutional LSTM Network: A Machine Learning Approach for Precipitation Nowcasting
 
+
+# Think of it as deciding what to remember and forget in both space and time
 class ConvLSTMCell(nn.Module):
 
     def __init__(self, input_dim, hidden_dim, kernel_size, bias):
@@ -72,7 +74,8 @@ class ConvLSTMCell(nn.Module):
         return (torch.zeros(batch_size, self.hidden_dim, height, width, device=self.conv.weight.device),
                 torch.zeros(batch_size, self.hidden_dim, height, width, device=self.conv.weight.device))
 
-
+# Stacks multiple ConvLSTMCell layers to create a deeper network,
+# processing entire sequences layer by layer.
 class ConvLSTM(nn.Module):
 
     """

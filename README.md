@@ -25,7 +25,6 @@ model = ConvLSTM(input_dim=channels,
 ```
 
 ### TODO (in progress...)
-- Comment code
 - Add docs
 - Add example usage on a toy problem
 - Implement stateful mechanism
