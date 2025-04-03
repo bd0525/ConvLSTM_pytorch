@@ -32,7 +32,7 @@ class ConvLSTMCell(nn.Module):
         self.bias = bias
 
         # Convolutional layer that takes concatenated input and hidden state
-        # and outputs 4 * hidden_dim channels for the gates (input, forget, output, cell)
+        # and outputs 4 * hidden_dim channels for the gates (input, forget, output, candidate cell state)
         self.conv = nn.Conv2d(in_channels=self.input_dim + self.hidden_dim,
                               out_channels=4 * self.hidden_dim,
                               kernel_size=self.kernel_size,
