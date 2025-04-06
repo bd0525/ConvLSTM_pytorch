@@ -10,8 +10,6 @@ Please note that in this repository we implement the following dynamics:
 which is a bit different from the one in the original [paper](https://arxiv.org/pdf/1506.04214.pdf).
 
 ### How to Use
-The `ConvLSTM` module derives from `nn.Module` so it can be used as any other PyTorch module.
-
 The ConvLSTM class supports an arbitrary number of layers. In this case, it can be specified the hidden dimension (that is, the number of channels) and the kernel size of each layer. In the case more layers are present but a single value is provided, this is replicated for all the layers. For example, in the following snippet each of the three layers has a different hidden dimension but the same kernel size.
 
 Example usage:
@@ -27,8 +25,8 @@ model = ConvLSTM(input_dim=channels,
 
 ### TODO (in progress...)
 - Add docs
-- Add example usage on a toy problem (currenly working on it)
-- Implement stateful mechanism
+- Add example usage on a toy problem (need test)
+- Implement stateful mechanism (need test)
 - ...
 
 ### Disclaimer
