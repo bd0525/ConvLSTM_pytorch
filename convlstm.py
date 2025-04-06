@@ -144,7 +144,8 @@ class ConvLSTM(nn.Module):
         Parameters
         ----------
         input_tensor: 5-D Tensor either of shape (t, b, c, h, w) or (b, t, c, h, w)
-        hidden_state: Optional initial hidden state
+        hidden_state: Optional initial hidden state from previous batch.
+                      If provided, it should be the last_state_list from the previous forward pass.
 
         Returns
         -------
@@ -158,11 +159,20 @@ class ConvLSTM(nn.Module):
 
         # Implement stateful ConvLSTM
         if hidden_state is not None:
-            raise NotImplementedError()
+            if len(hidden_state) != self.num_layers:
+                raise ValueError(f"Expected hidden state for {self.num_layers} layers, "
+                    f"but got {len(hidden_state)} layers.")
+            # Check batch size consistency
+            h0, c0 = hidden_state[0]
+            state_batch_size = h0.size(0)
+
+            if state_batch_size != b:
+                raise ValueError(f"Input batch size {b} doesn't match hidden state "
+                             f"batch size {state_batch_size}. For stateful operation, "
+                             f"these must match.")
         else:
-            # Since the init is done in forward. Can send image size here
-            hidden_state = self._init_hidden(batch_size=b,
-                                             image_size=(h, w))
+            # Initialize new hidden state if not provided
+            hidden_state = self._init_hidden(batch_size=b, image_size=(h, w))
 
         layer_output_list = []
         last_state_list = []
