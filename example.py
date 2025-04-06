@@ -186,6 +186,7 @@ class VideoFrameDataset(Dataset):
         return input_seq, target_seq
 
 def train_model(model, train_loader, val_loader, num_epochs=15, patience=5, device='cuda'):
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     model.to(device)
     
     optimizer = torch.optim.Adam(model.parameters(), lr=0.002)
@@ -259,7 +260,7 @@ def train_model(model, train_loader, val_loader, num_epochs=15, patience=5, devi
         # Save model if validation loss improved
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), 'best_video_prediction_model.pth')
+            torch.save(model.state_dict(), os.path.join(script_dir, 'best_video_prediction_model.pth'))
             patience_counter = 0
             print("Saved model checkpoint (improved validation loss)")
         else:
@@ -279,13 +280,14 @@ def train_model(model, train_loader, val_loader, num_epochs=15, patience=5, devi
     plt.ylabel('Loss')
     plt.title('Training and Validation Loss')
     plt.legend()
-    plt.savefig('training_loss_curve.png')
+    plt.savefig(os.path.join(script_dir, 'training_loss_curve.png'))
     plt.close()
             
     return model
 
 # Enhanced function to visualize predictions with numerical metrics
 def visualize_predictions(model, test_loader, device='cuda', num_samples=5):
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     model.eval()
     samples_seen = 0
     
@@ -345,7 +347,7 @@ def visualize_predictions(model, test_loader, device='cuda', num_samples=5):
                     axes[2, t].axis('off')
                 
                 plt.tight_layout()
-                plt.savefig(f'prediction_sample_{samples_seen + b}.png')
+                plt.savefig(os.path.join(script_dir, f'prediction_sample_{samples_seen + b}.png'))
                 plt.close()
                 
             samples_seen += inputs.size(0)
@@ -361,8 +363,8 @@ def visualize_predictions(model, test_loader, device='cuda', num_samples=5):
 # Generate more varied synthetic data
 def generate_improved_synthetic_data(num_sequences=200, seq_length=20, height=64, width=64):
     """Generate more varied moving shapes for better training"""
-    
-    data_dir = 'synthetic_video_data'
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(script_dir, 'synthetic_video_data')
     os.makedirs(data_dir, exist_ok=True)
     
     for seq_idx in range(num_sequences):
@@ -459,6 +461,7 @@ def generate_improved_synthetic_data(num_sequences=200, seq_length=20, height=64
 
 # Main function
 def main():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     print("Starting the improved video prediction application...")
     
     print("Generating synthetic data...")
@@ -487,16 +490,16 @@ def main():
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     
-    # Create improved model
+    # Create model
     print("Creating model...")
-    model = VideoFramePredictionModel(input_channels=1, hidden_dim=128, num_layers=2)  # Reduced layers
+    model = VideoFramePredictionModel(input_channels=1, hidden_dim=128, num_layers=2)
     
     # Train the model with improved settings
     print("Training model...")
     model = train_model(model, train_loader, val_loader, num_epochs=15, patience=5, device=device)
     
     # Load best model
-    model.load_state_dict(torch.load('best_video_prediction_model.pth'))
+    model.load_state_dict(torch.load(os.path.join(script_dir, 'best_video_prediction_model.pth')))
     
     # Visualize predictions with metrics
     print("Visualizing predictions...")
