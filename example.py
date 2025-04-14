@@ -285,7 +285,7 @@ def train_model(model, train_loader, val_loader, num_epochs=15, patience=5, devi
             
     return model
 
-# Enhanced function to visualize predictions with numerical metrics
+# Function to visualize predictions with numerical metrics
 def visualize_predictions(model, test_loader, device='cuda', num_samples=5):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     model.eval()
